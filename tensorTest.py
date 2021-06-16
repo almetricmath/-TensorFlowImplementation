@@ -111,7 +111,7 @@ biases0 = tf.constant(biases0, tf.float32)
 
 
 _input0 = FanOut(m)
-x = np.linspace(-1, 1, n)
+x = np.linspace(a, b, n)
 X = _input0(x)
 
 _ReLU = ReLU(biases0, m)
@@ -128,7 +128,7 @@ y = func(x)
 
 # compute mean squared error in the interval [a, b]
  
-MSE = (1/n)*np.sum(y1r - y)**2
+MSE = (1/n)*np.sum((y1r - y)**2)
 
 y_min = tf.math.reduce_min(y1r)
 y_max = tf.math.reduce_max(y1r)
