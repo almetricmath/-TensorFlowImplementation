@@ -14,14 +14,12 @@ import sys
 # take a numpy array input and output a stacked array dim = output_dim. - of the input
 # this fans the input out so multiple neurons can act on it
 
-class ReLUFanOut(keras.layers.Layer):   # takes a single input vector, fans it out
+class FanOut(keras.layers.Layer):   # takes a single input vector, fans it out
                                         # and applies an ReLU activation function.
     
-    def __init__(self, _weights, _biases, _dim=1):
-        super(ReLUFanOut, self).__init__()  # instantiate Layer base class
+    def __init__(self, _dim = 1):
+        super(FanOut, self).__init__()  # instantiate Layer base class
         self._dim = _dim
-        self._weights = _weights
-        self._biases = _biases
         
     def call(self, _input):
         
@@ -32,16 +30,35 @@ class ReLUFanOut(keras.layers.Layer):   # takes a single input vector, fans it o
         
         for i in range(self._dim):
             # add bias term to input
-            tmp = _input + self._biases[i]
-            #tmp = tf.add(_input, self._biases[i])
+            tmp = _input
             ret.append(tmp)
             
         ret = tf.stack(ret) # convert tensor list to a single tensor
-        # apply ReLU activation function
-        ret = K.relu(ret)
-        
+    
         return ret
     
+class ReLU(keras.layers.Layer):
+    
+    def __init__(self, _biases, _dim = 1):
+        super(ReLU, self).__init__()  # instantiate Layer base class
+        self._biases = _biases
+        
+    def call(self, _input):
+        # _input is a matrix where each row is an input vector
+         
+        n = _input.shape[0] # number of rows
+        tmp = [0]*n
+         
+        # add biases to data
+         
+        for i in range(n):
+            tmp[i] = _input[i] + self._biases[i]
+            
+        # apply ReLU function
+        ret = K.relu(tmp)
+        return ret
+        
+
 
 class  sumLayer(keras.layers.Layer):
     
@@ -93,30 +110,38 @@ weights = tf.constant(weights, tf.float32)
 biases0 = tf.constant(biases0, tf.float32)
 
 
-_input0 = ReLUFanOut(weights, biases0, m)
+_input0 = FanOut(m)
+x = np.linspace(-1, 1, n)
+X = _input0(x)
+
+_ReLU = ReLU(biases0, m)
+Y1 = _ReLU(X)
+
 
 biases1 = [i[2] for i in coeffs]
 biases1 = tf.constant(biases1, tf.float32)
 _sum = sumLayer(weights, biases1, m)
 
-x = np.linspace(-1, 1, n)
-y = _input0(x)
-yr = _sum(y)
+y1r = _sum(Y1)
  
 y = func(x)
 
 # compute mean squared error in the interval [a, b]
  
-MSE = (1/n)*np.sum((y - yr)**2)
-
-x1 = np.linspace(2*a, 2*b, 2*n)
-yt = func(x1)
-
-y1 = _input0(x1)
-y1r = _sum(y1)
+MSE = (1/n)*np.sum(y1r - y)**2
 
 y_min = tf.math.reduce_min(y1r)
 y_max = tf.math.reduce_max(y1r)
 
-fplot = nf.fitPlot((2*a, 2*b), (-3 + y_min - 1, 3 + y_max + 1), func_str, m, n, MSE, 30, 40)
-fplot.plot(x1, yt, y1r)
+fplot = nf.fitPlot((a, b), (-3 + y_min - 1, 3 + y_max + 1), func_str, m, n, MSE, 30, 40)
+fplot.plot(x, y, y1r)
+
+
+
+x1 = np.linspace(2*a, 2*b, 2*n)
+Y = func(x1)
+
+Y1 = _input0(x1)
+Y1r = _sum(Y1)
+
+
