@@ -1,13 +1,16 @@
 # set up custom layers for input 
-# and processing to show how keras works
+# and processing to show how tensorflow and keras work
 
 __author__ = 'Al Bernstein'
-__license__ = 'MIT License'
+__license__ = 'Apache  License Version 2.0'
 
 import numpy as np
 import tensorflow as tf 
 from keras import backend as K
 import keras
+from tensorflow.keras import layers
+from tensorflow.keras import Sequential
+from tensorflow.keras.layers import Dense
 import neuroFit as nf
 import sys
 
@@ -25,16 +28,9 @@ class FanOut(keras.layers.Layer):   # takes a single input vector, fans it out
         
         ret = []
          
-        # Add input to each bias term to create 
-        # a list of tensors
+        _mul = np.ones(self._dim)
         
-        for i in range(self._dim):
-            # add bias term to input
-            tmp = _input
-            ret.append(tmp)
-            
-        ret = tf.stack(ret) # convert tensor list to a single tensor
-    
+        ret = tf.einsum('i, j', _mul, _input)
         return ret
     
 class ReLU(keras.layers.Layer):
@@ -115,33 +111,37 @@ x = np.linspace(a, b, n)
 X = _input0(x)
 
 _ReLU = ReLU(biases0, m)
-Y1 = _ReLU(X)
+Y = _ReLU(X)
 
 
 biases1 = [i[2] for i in coeffs]
 biases1 = tf.constant(biases1, tf.float32)
 _sum = sumLayer(weights, biases1, m)
 
-y1r = _sum(Y1)
+yr = _sum(Y)
  
 y = func(x)
 
 # compute mean squared error in the interval [a, b]
  
-MSE = (1/n)*np.sum((y1r - y)**2)
+MSE = (1/n)*np.sum((yr - y)**2)
 
-y_min = tf.math.reduce_min(y1r)
-y_max = tf.math.reduce_max(y1r)
-
-fplot = nf.fitPlot((a, b), (-3 + y_min - 1, 3 + y_max + 1), func_str, m, n, MSE, 30, 40)
-fplot.plot(x, y, y1r)
+y_min = tf.math.reduce_min(yr)
+y_max = tf.math.reduce_max(yr)
 
 
+# compute function and reconstructed function
+# between [2a, 2b] with twice as many points
 
 x1 = np.linspace(2*a, 2*b, 2*n)
-Y = func(x1)
+y1 = func(x1)
 
-Y1 = _input0(x1)
-Y1r = _sum(Y1)
+X1 = _input0(x1)
+Y1 = _ReLU(X1)
+y1r = _sum(Y1)
+
+fplot = nf.fitPlot((2*a, 2*b), (-3 + y_min - 1, 3 + y_max + 1), func_str, m, n, MSE, 30, 40)
+fplot.plot(x1, y1, y1r)
+
 
 
